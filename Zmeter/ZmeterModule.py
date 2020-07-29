@@ -91,10 +91,13 @@ class SerialThread(Qt.QThread):
             self.my_serial.timeout = timeout
     
             self.ThreadRead = ReadSerial(self.my_serial)
-            self.ThreadRead.ReadDone.connect(self.PrintReadData)
+            self.ThreadRead.ReadDone.connect(self.EmitReadData)
             
             self.ThreadWrite = WriteSerial(self.my_serial)
-            self.ThreadWrite.WriteDone.connect(self.PrintWritenData)
+            self.ThreadWrite.WriteDone.connect(self.WriteData)
+            
+            self.freqs = None
+            self.value = None
 
         except Exception as error:
             print(str(error))
@@ -117,14 +120,21 @@ class SerialThread(Qt.QThread):
             print(str(error))
             pass
     
-    def PrintReadData(self, data):
+    def EmitReadData(self, data):
         self.ReadData = data
-        # print(self.ReadData)
+        if self.ReadData.startswith("NFREQ"):
+            if self.freqs is None:
+                self.CalcFreqs(self.ReadData)
+                
         self.NewLine.emit(self.ReadData)
 
-    def PrintWritenData(self):
+    def WriteData(self):
         self.WritenData = self.ThreadWrite.WriteData
-        # print(self.WritenData)
+        
+    def CalcFreqs(self, data):
+        nChannels = int(data.split("\t")[-1])
+        self.freqs = np.ndarray((nChannels+1))
+        self.value = np.ndarray((nChannels+1))
             
     def close(self):
         if self.my_serial.is_open == True:
@@ -148,7 +158,6 @@ class WriteSerial(Qt.QThread):
         while True:
             if self.Data is not None:
                 try:
-                    # print(self.Data)
                     data1 = [ord(c) for c in self.Data]
                     chk = 0
                     for d in data1:
@@ -161,7 +170,6 @@ class WriteSerial(Qt.QThread):
                         self.Data = None
                         
                 except Exception as ex:
-                    print('No hace el write')
                     print(ex)  
                 
     def AddData(self, NewData):
@@ -183,10 +191,8 @@ class ReadSerial(Qt.QThread):
                 n = self.my_serial.inWaiting()                       
                 if n:
                     data = self.my_serial.read(n).decode()   
-                    # print('READIN -->', n, len(data), data)
                     self.LineFinder(data)
-                    # self.ReadDone.emit()
-                    
+                  
             except Exception as ex:
                 print(ex)
     
@@ -226,65 +232,51 @@ class ReadSerial(Qt.QThread):
                     for d in self.tempLine:
                         chk = chk ^ ord(d)
                     if chk == int(TmpCheck, 16):                        
-                        # print(self.tempLine)
                         toEmit = str(copy.copy(self.tempLine))
                         self.ReadDone.emit(toEmit)
-                        # self.NewLine.emit(str(self.tempLine))
                     else:
                         print('error on LineFinder state = 3')
-                        
-
+         
+        
 class Measure(Qt.QThread):
     MeaDone = Qt.pyqtSignal()
     
     def __init__(self):
         super(Measure, self).__init__()
+        self.Data = None
         self.freqs = None
         self.value = None
-        self.Data = None
         
     def run(self):
         while True:
             if self.Data is not None:
-                print("###################################################")
-                print(self.Data)
-                print(self.Data.startswith("M"))
-                if self.Data.startswith("M"):
-                    SplitData = self.Data.split("\t")
-                    Chn = self.SelChn(MChn = SplitData[0])
-                    self.SaveFreqVal(ChnInd=Chn,
-                                     Freq=SplitData[1],
-                                     ValMag=SplitData[2],
-                                     ValPh=SplitData[3],
-                                     ValRe=SplitData[4],
-                                     ValImag=SplitData[5])
-                    self.MeaDone.emit()
-                if self.Data.startswith("NFREQ"):
-                    if self.freqs is None:
-                        nChannels = self.Data.split("\t")[1]
-                        self.freqs = np.ndarray((1, nChannels+1))
-                        self.value = np.ndarray((1, nChannels+1))
-                else:
-                    continue
+                Datos = copy.copy(self.Data)
+                SplitData = Datos.split("\t")
+                self.SaveFreqVal(ChnInd=int(SplitData[0].split("M")[-1]),
+                                 Freq=SplitData[1],
+                                 ValMag=SplitData[2],
+                                 ValPh=SplitData[3],
+                                 ValRe=SplitData[4],
+                                 ValImag=SplitData[5])
+                self.MeaDone.emit()
+                self.Data = None
             else:
-                Qt.QThread.msleep(10)
+                Qt.QThread.msleep(1)
                 
     def AddData(self, NewData):
         if self.Data is not None:
             print("Previous Data not Measured")
         self.Data = NewData
     
-    def SelChn(self, MChn):
-        Chan = MChn.split("M")
-        return Chan
     
     def SaveFreqVal(self, ChnInd, Freq, ValMag, ValPh, ValRe, ValImag, MeaMode="polar"):
         self.freqs[ChnInd] = Freq
+        print('Index-->', ChnInd)
         if MeaMode == "polar":
-            self.complex = np.abs(ValMag)*np.exp(ValPh*1j)
+            self.complex = np.abs(float(ValMag))*np.exp(float(ValPh)*1j)
             self.value[ChnInd] = np.abs(self.complex)
             
         if MeaMode == "Bin":
-            self.complex = ValRe + (ValImag*1j)
+            self.complex = float(ValRe) + (float(ValImag)*1j)
             self.value[ChnInd] = np.abs(self.complex)
          

@@ -81,7 +81,7 @@ class MainWindow(QWidget):
         self.Console.setReadOnly(True)
         
         grid = QGridLayout()
-        grid.setSpacing(50)
+        grid.setSpacing(150)
         grid.addWidget(self.Console, 3, 1, 5, 1)
 
         layout.addWidget(self.treepar)
@@ -93,7 +93,7 @@ class MainWindow(QWidget):
         layout.addWidget(self.linecommands)
         layout.addLayout(hlayout)
 
-        self.setGeometry(550, 300, 400, 700)
+        self.setGeometry(450, 50, 700, 950)
         self.setWindowTitle('MainWindow')
         self.show()
         
@@ -129,7 +129,7 @@ class MainWindow(QWidget):
                 print('started')
                 self.treepar.setParameters(self.Parameters, showTop=False)
                 self.threadAcq = Zmeter.Measure()
-                self.threadSerial.ThreadWrite.AddData("MEAMEA -1")
+                self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
                 self.threadAcq.MeaDone.connect(self.NewSample)
                 self.threadAcq.start()
                 
@@ -178,12 +178,15 @@ class MainWindow(QWidget):
             self.btnConnect.setText("Connect")
             
     def on_NewLine(self, data):
-        print('on_newline')
-        print(data)
+        # print('on_newline')
         self.Console.append('>>>'+data+'\n')
         if self.threadAcq is not None:
-            self.threadAcq.AddData(data)
-    
+            if self.threadAcq.freqs is None:
+                self.threadAcq.freqs = self.threadSerial.freqs
+                self.threadAcq.value = self.threadSerial.value      
+            if data.startswith("M"):
+                self.threadAcq.AddData(data)
+        
     def SendUserInput(self):
         print('WRITE')
         if self.threadSerial is not None:
@@ -197,7 +200,7 @@ class MainWindow(QWidget):
         
     def NewSample(self):
         print("Freq is -->", self.threadAcq.freqs)
-        print("Value is -->", self.threadAcq.freqs)
+        print("Value is -->", self.threadAcq.value)
 # #############################MAIN##############################
 if __name__ == '__main__':
     app = QApplication(sys.argv)
