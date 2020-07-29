@@ -133,8 +133,8 @@ class SerialThread(Qt.QThread):
         
     def CalcFreqs(self, data):
         nChannels = int(data.split("\t")[-1])
-        self.freqs = np.ndarray((nChannels+1))
-        self.value = np.ndarray((nChannels+1))
+        self.freqs = np.ndarray((nChannels))*np.NaN
+        self.value = np.ndarray((nChannels))*np.NaN
             
     def close(self):
         if self.my_serial.is_open == True:
@@ -234,12 +234,13 @@ class ReadSerial(Qt.QThread):
                     if chk == int(TmpCheck, 16):                        
                         toEmit = str(copy.copy(self.tempLine))
                         self.ReadDone.emit(toEmit)
+                        Qt.QThread.msleep(10)
                     else:
                         print('error on LineFinder state = 3')
          
         
 class Measure(Qt.QThread):
-    MeaDone = Qt.pyqtSignal()
+    MeaDone = Qt.pyqtSignal(object, object)
     
     def __init__(self):
         super(Measure, self).__init__()
@@ -258,15 +259,18 @@ class Measure(Qt.QThread):
                                  ValPh=SplitData[3],
                                  ValRe=SplitData[4],
                                  ValImag=SplitData[5])
-                self.MeaDone.emit()
+                self.MeaDone.emit(self.freqs, self.value)
                 self.Data = None
             else:
                 Qt.QThread.msleep(1)
                 
     def AddData(self, NewData):
-        if self.Data is not None:
-            print("Previous Data not Measured")
-        self.Data = NewData
+        while self.Data is not None:
+            Qt.QThread.msleep(1)
+            # print("Previous Data not Measured")
+            print('waiting')
+        if self.Data is None:
+            self.Data = NewData
     
     
     def SaveFreqVal(self, ChnInd, Freq, ValMag, ValPh, ValRe, ValImag, MeaMode="polar"):

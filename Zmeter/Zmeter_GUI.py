@@ -198,9 +198,9 @@ class MainWindow(QWidget):
         self.linecommands.setText("")
         self.Console.clear()
         
-    def NewSample(self):
-        print("Freq is -->", self.threadAcq.freqs)
-        print("Value is -->", self.threadAcq.value)
+    def NewSample(self, freq, val):
+        print("Freq is -->", freq)
+        print("Value is -->", val)
 # #############################MAIN##############################
 if __name__ == '__main__':
     app = QApplication(sys.argv)
