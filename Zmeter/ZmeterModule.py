@@ -262,7 +262,7 @@ class Measure(Qt.QThread):
                                  ValRe=SplitData[4],
                                  ValImag=SplitData[5])
                 self.MeaDone.emit(self.freqs, self.value)
-                if ChnInd >= self.freq.size():
+                if ChnInd >= (self.freqs.size-1):
                     self.NewMea.emit(self.freqs, self.value)
                     
                 self.Data = None

@@ -134,7 +134,7 @@ class MainWindow(QWidget):
                 self.threadAcq.MeaDone.connect(self.NewSample)
                 self.threadAcq.NewMea.connect(self.NewMeasure)
                 self.threadAcq.start()
-                self.fig, self.axBode = plt.subplots(2,1, sharex=True)
+                self.fig, (self.axMag, self.axPh) = plt.subplots(2,1, sharex=True)
                 
                 self.btnStartMeas.setText("Stop Acq")
                 self.OldTime = time.time()
@@ -209,8 +209,10 @@ class MainWindow(QWidget):
     def NewMeasure(self, freq, val):
         print("Freq is -->", freq)
         print("Value is -->", val)
-        self.axBode.plot(freq, val)
-        
+        w = 2*np.pi*f
+        mag, phase = xx
+        self.axMag.plot(w, mag)
+        self.axPh.plot(w, phase)
         
 # #############################MAIN##############################
 if __name__ == '__main__':
