@@ -241,6 +241,7 @@ class ReadSerial(Qt.QThread):
         
 class Measure(Qt.QThread):
     MeaDone = Qt.pyqtSignal(object, object)
+    NewMea = Qt.pyqtSignal(object, object)
     
     def __init__(self):
         super(Measure, self).__init__()
@@ -253,13 +254,17 @@ class Measure(Qt.QThread):
             if self.Data is not None:
                 Datos = copy.copy(self.Data)
                 SplitData = Datos.split("\t")
-                self.SaveFreqVal(ChnInd=int(SplitData[0].split("M")[-1]),
+                ChnInd = int(SplitData[0].split("M")[-1])
+                self.SaveFreqVal(ChnInd=ChnInd,
                                  Freq=SplitData[1],
                                  ValMag=SplitData[2],
                                  ValPh=SplitData[3],
                                  ValRe=SplitData[4],
                                  ValImag=SplitData[5])
                 self.MeaDone.emit(self.freqs, self.value)
+                if ChnInd >= self.freq.size():
+                    self.NewMea.emit(self.freqs, self.value)
+                    
                 self.Data = None
             else:
                 Qt.QThread.msleep(1)
@@ -273,7 +278,7 @@ class Measure(Qt.QThread):
             self.Data = NewData
     
     
-    def SaveFreqVal(self, ChnInd, Freq, ValMag, ValPh, ValRe, ValImag, MeaMode="polar"):
+    def SaveFreqVal(self, ChnInd, Freq, ValMag, ValPh, ValRe, ValImag, MeaMode="Bin"):
         self.freqs[ChnInd] = Freq
         print('Index-->', ChnInd)
         if MeaMode == "polar":

@@ -19,6 +19,7 @@ from PyQt5.QtWidgets import (QWidget, QLabel, QLineEdit,
 import pyqtgraph as pg
 import pyqtgraph.console
 from pyqtgraph.parametertree import Parameter, ParameterTree
+import matplotlib.pyplot as plt
 
 import ZmeterModule as Zmeter
 import PyqtTools.FileModule as FileMod
@@ -131,7 +132,9 @@ class MainWindow(QWidget):
                 self.threadAcq = Zmeter.Measure()
                 self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
                 self.threadAcq.MeaDone.connect(self.NewSample)
+                self.threadAcq.NewMea.connect(self.NewMeasure)
                 self.threadAcq.start()
+                self.fig, self.axBode = plt.subplots(2,1, sharex=True)
                 
                 self.btnStartMeas.setText("Stop Acq")
                 self.OldTime = time.time()
@@ -199,8 +202,16 @@ class MainWindow(QWidget):
         self.Console.clear()
         
     def NewSample(self, freq, val):
+        # print("Freq is -->", freq)
+        # print("Value is -->", val)
+        print('NextFreq')
+        
+    def NewMeasure(self, freq, val):
         print("Freq is -->", freq)
         print("Value is -->", val)
+        self.axBode.plot(freq, val)
+        
+        
 # #############################MAIN##############################
 if __name__ == '__main__':
     app = QApplication(sys.argv)
