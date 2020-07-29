@@ -12,6 +12,7 @@ import numpy as np
 import time
 
 from PyQt5 import Qt
+import PyQt5.QtCore as QtCore
 from PyQt5.QtWidgets import (QWidget, QLabel, QLineEdit,
                              QTextEdit, QGridLayout, QApplication)
 
@@ -32,6 +33,7 @@ class MainWindow(QWidget):
         layout = Qt.QVBoxLayout(self)
         
         self.threadSerial = None
+        self.threadAcq = None
         
         # #############################Save##############################
         self.SaveStateParams = FileMod.SaveSateParameters(QTparent=self,
@@ -61,7 +63,8 @@ class MainWindow(QWidget):
         self.treepar.setParameters(self.Parameters, showTop=False)
         self.treepar.setWindowTitle('pyqtgraph example: Parameter Tree')
         
-        self.btnStart = Qt.QPushButton("Start Gen and Adq!")
+        self.btnConnect= Qt.QPushButton("Connect")
+        self.btnStartMeas = Qt.QPushButton("Start Acq")
         self.TestMode = Qt.QCheckBox('Test Software Mode')        
 
         
@@ -82,7 +85,8 @@ class MainWindow(QWidget):
         grid.addWidget(self.Console, 3, 1, 5, 1)
 
         layout.addWidget(self.treepar)
-        layout.addWidget(self.btnStart)   
+        layout.addWidget(self.btnConnect)   
+        layout.addWidget(self.btnStartMeas)   
         layout.addWidget(self.TestMode)
         layout.addLayout(grid)
         layout.addWidget(namecommand)
@@ -92,11 +96,17 @@ class MainWindow(QWidget):
         self.setGeometry(550, 300, 400, 700)
         self.setWindowTitle('MainWindow')
         self.show()
-                
-        self.btnStart.clicked.connect(self.on_btnStart)
+        
+
+        self.btnConnect.clicked.connect(self.on_btnConnect)
+        self.btnStartMeas.clicked.connect(self.on_btnStartMeas)
         sendbutton.clicked.connect(self.SendUserInput)
         clearbutton.clicked.connect(self.ClearData)
-        
+      
+    def keyPressEvent(self, event):
+        if event.key() == QtCore.Qt.Key_Return:
+            self.SendUserInput()
+            
 # #############################Changes Control##############################
     def on_Params_changed(self, param, changes):
         print("tree changes:")
@@ -112,7 +122,32 @@ class MainWindow(QWidget):
         print('  ----------')
               
 # #############################START Real Time Acquisition ####################
-    def on_btnStart(self):
+    def on_btnStartMeas(self):
+        
+        if self.threadSerial is not None:
+            if self.threadAcq is None:
+                print('started')
+                self.treepar.setParameters(self.Parameters, showTop=False)
+                self.threadAcq = Zmeter.Measure()
+                self.threadSerial.ThreadWrite.AddData("MEAMEA -1")
+                self.threadAcq.MeaDone.connect(self.NewSample)
+                self.threadAcq.start()
+                
+                self.btnStartMeas.setText("Stop Acq")
+                self.OldTime = time.time()
+        
+            else:
+                print('stopped')
+                self.threadSerial.ThreadWrite.AddData("MEACAN")
+                self.threadAcq.MeaDone.disconnect()
+                self.threadSerial.terminate()
+                self.threadSerial = None
+    
+                self.btnStartMeas.setText("Start Aqc")                
+        else:
+            print("Port not connected")
+            
+    def on_btnConnect(self):
         
         if self.threadSerial is None:
             print('started')
@@ -129,7 +164,7 @@ class MainWindow(QWidget):
                 self.threadSerial.terminate()
                 self.threadSerial = None
             
-            self.btnStart.setText("Stop Gen")
+            self.btnConnect.setText("Disconnect")
             self.OldTime = time.time()
         
         else:
@@ -140,23 +175,29 @@ class MainWindow(QWidget):
             self.threadSerial.terminate()
             self.threadSerial = None
 
-            self.btnStart.setText("Start Gen and Adq!")
+            self.btnConnect.setText("Connect")
             
-    def on_NewLine(self):
+    def on_NewLine(self, data):
         print('on_newline')
-        print(self.threadSerial.ReadData)
-        self.Console.append('>>>'+self.threadSerial.ReadData+'\n')
+        print(data)
+        self.Console.append('>>>'+data+'\n')
+        if self.threadAcq is not None:
+            self.threadAcq.AddData(data)
     
     def SendUserInput(self):
         print('WRITE')
         if self.threadSerial is not None:
             self.threadSerial.ThreadWrite.AddData(self.linecommands.text())
         self.Console.append('>'+self.linecommands.text()+'\n')
-    
+        self.linecommands.setText("")
+        
     def ClearData(self):
         self.linecommands.setText("")
-        self.Console.Clear()
+        self.Console.clear()
         
+    def NewSample(self):
+        print("Freq is -->", self.threadAcq.freqs)
+        print("Value is -->", self.threadAcq.freqs)
 # #############################MAIN##############################
 if __name__ == '__main__':
     app = QApplication(sys.argv)
