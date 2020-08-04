@@ -10,6 +10,7 @@ import os
 import sys
 import numpy as np
 import time
+import pickle
 
 from PyQt5 import Qt
 import PyQt5.QtCore as QtCore
@@ -122,34 +123,7 @@ class MainWindow(QWidget):
         print('  data:      %s' % str(data))
         print('  ----------')
               
-# #############################START Real Time Acquisition ####################
-    def on_btnStartMeas(self):
-        
-        if self.threadSerial is not None:
-            if self.threadAcq is None:
-                print('started')
-                self.treepar.setParameters(self.Parameters, showTop=False)
-                self.threadAcq = Zmeter.Measure()
-                self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
-                self.threadAcq.MeaDone.connect(self.NewSample)
-                self.threadAcq.NewMea.connect(self.NewMeasure)
-                self.threadAcq.start()
-                self.fig, (self.axMag, self.axPh) = plt.subplots(2,1, sharex=True)
-                
-                self.btnStartMeas.setText("Stop Acq")
-                self.OldTime = time.time()
-        
-            else:
-                print('stopped')
-                self.threadSerial.ThreadWrite.AddData("MEACAN")
-                self.threadAcq.MeaDone.disconnect()
-                self.threadSerial.terminate()
-                self.threadSerial = None
-    
-                self.btnStartMeas.setText("Start Aqc")                
-        else:
-            print("Port not connected")
-            
+# #############################START Real Time Acquisition ####################         
     def on_btnConnect(self):
         
         if self.threadSerial is None:
@@ -179,6 +153,44 @@ class MainWindow(QWidget):
             self.threadSerial = None
 
             self.btnConnect.setText("Connect")
+    
+    def on_btnStartMeas(self):
+        
+        if self.threadSerial is not None:
+            if self.threadAcq is None:
+                print('started')
+                self.treepar.setParameters(self.Parameters, showTop=False)
+                self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
+                                
+                self.threadAcq = Zmeter.Measure()
+                self.threadAcq.MeaDone.connect(self.NewSample)
+                self.threadAcq.NewMea.connect(self.NewMeasure)
+                self.threadAcq.start()
+                
+                self.MeaArrayMAG = np.array([])
+                self.MeaArrayPH = np.array([])
+                self.MeaArrayFREQ = np.array([])
+                
+                self.threadBode = Zmeter.PlotBode()
+                
+                self.btnStartMeas.setText("Stop Acq")
+                self.OldTime = time.time()
+        
+            else:
+                print('stopped')
+                self.threadSerial.ThreadWrite.AddData("MEACAN")
+                self.SaveMeas(FileName=self.FileParams.FilePath,
+                              Mag=self.MeaArrayMAG,
+                              Ph=self.MeaArrayPH,
+                              freq=self.MeaArrayFREQ
+                              )
+                self.threadAcq.MeaDone.disconnect()
+                self.threadSerial.terminate()
+                self.threadSerial = None
+    
+                self.btnStartMeas.setText("Start Aqc")                
+        else:
+            print("Port not connected")
             
     def on_NewLine(self, data):
         # print('on_newline')
@@ -186,7 +198,8 @@ class MainWindow(QWidget):
         if self.threadAcq is not None:
             if self.threadAcq.freqs is None:
                 self.threadAcq.freqs = self.threadSerial.freqs
-                self.threadAcq.value = self.threadSerial.value      
+                self.threadAcq.value = self.threadSerial.value     
+                self.threadAcq.Bode = self.threadSerial.Bode
             if data.startswith("M"):
                 self.threadAcq.AddData(data)
         
@@ -206,13 +219,32 @@ class MainWindow(QWidget):
         # print("Value is -->", val)
         print('NextFreq')
         
-    def NewMeasure(self, freq, val):
+    def NewMeasure(self, freq, val, Bode):
+        print('BODE')
+        #NO LE DA TIEMPO A PLOTEAR
+        self.threadBode.AddData(Mag=Bode[:,0],
+                                Ph=Bode[:,1],
+                                w=2*np.pi*freq)
         print("Freq is -->", freq)
         print("Value is -->", val)
-        w = 2*np.pi*f
-        mag, phase = xx
-        self.axMag.plot(w, mag)
-        self.axPh.plot(w, phase)
+        print("Bode is -->", Bode)
+        if self.MeaArrayMAG.shape[0] is 0:
+            self.MeaArrayMAG = Bode[:,0].copy()
+            self.MeaArrayPH = Bode[:,1].copy()
+            self.MeaArrayFREQ = 2*np.pi*freq
+        else:
+            self.MeaArrayMAG = np.c_[self.MeaArrayMAG, Bode[:,0]]
+            self.MeaArrayPH = np.c_[self.MeaArrayPH, Bode[:,1]]
+            self.MeaArrayFREQ = np.c_[self.MeaArrayFREQ, 2*np.pi*freq]
+
+    def SaveMeas(self, FileName, Mag, Ph, Freq):
+        self.FileName = FileName
+#        print(self.FileName)
+        with open(self.FileName, "wb") as f:
+            pickle.dump(Mag, f)
+            pickle.dump(Ph, f)
+            pickle.dump(Freq, f)
+        print('Saved')      
         
 # #############################MAIN##############################
 if __name__ == '__main__':

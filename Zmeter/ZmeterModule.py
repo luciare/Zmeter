@@ -9,6 +9,7 @@ import pyqtgraph.parametertree.parameterTypes as pTypes
 from PyQt5 import Qt
 from PyQt5.QtCore import QThread, pyqtSignal
 from serial.tools import list_ports
+import matplotlib.pyplot as plt
 
 import numpy as np
 import copy
@@ -98,6 +99,7 @@ class SerialThread(Qt.QThread):
             
             self.freqs = None
             self.value = None
+            self.Bode = None
 
         except Exception as error:
             print(str(error))
@@ -135,6 +137,7 @@ class SerialThread(Qt.QThread):
         nChannels = int(data.split("\t")[-1])
         self.freqs = np.ndarray((nChannels))*np.NaN
         self.value = np.ndarray((nChannels))*np.NaN
+        self.Bode = np.ndarray((nChannels, 2))*np.NaN
             
     def close(self):
         if self.my_serial.is_open == True:
@@ -241,13 +244,14 @@ class ReadSerial(Qt.QThread):
         
 class Measure(Qt.QThread):
     MeaDone = Qt.pyqtSignal(object, object)
-    NewMea = Qt.pyqtSignal(object, object)
+    NewMea = Qt.pyqtSignal(object, object, object)
     
     def __init__(self):
         super(Measure, self).__init__()
         self.Data = None
         self.freqs = None
         self.value = None
+        self.Bode = None
         
     def run(self):
         while True:
@@ -263,11 +267,11 @@ class Measure(Qt.QThread):
                                  ValImag=SplitData[5])
                 self.MeaDone.emit(self.freqs, self.value)
                 if ChnInd >= (self.freqs.size-1):
-                    self.NewMea.emit(self.freqs, self.value)
+                    self.NewMea.emit(self.freqs, self.value, self.Bode)
                     
                 self.Data = None
             else:
-                Qt.QThread.msleep(1)
+                Qt.QThread.msleep(10)
                 
     def AddData(self, NewData):
         while self.Data is not None:
@@ -280,6 +284,8 @@ class Measure(Qt.QThread):
     
     def SaveFreqVal(self, ChnInd, Freq, ValMag, ValPh, ValRe, ValImag, MeaMode="Bin"):
         self.freqs[ChnInd] = Freq
+        self.Bode[ChnInd, 0] = ValMag
+        self.Bode[ChnInd, 1] = ValPh
         print('Index-->', ChnInd)
         if MeaMode == "polar":
             self.complex = np.abs(float(ValMag))*np.exp(float(ValPh)*1j)
@@ -289,3 +295,34 @@ class Measure(Qt.QThread):
             self.complex = float(ValRe) + (float(ValImag)*1j)
             self.value[ChnInd] = np.abs(self.complex)
          
+class PlotBode(Qt.QThread):
+    def __init__(self):
+        super(PlotBode, self).__init__()
+        self.Mag = None
+        self.Ph = None
+        self.w = None
+        self.fig, (self.axMag, self.axPh) = plt.subplots(2,1, sharex=True)
+        
+    def run(self):
+        while True:
+            if self.Mag is not None:
+                self.axMag.semilogx(self.w, self.Mag)
+                self.axPh.semilogx(self.w, self.Ph)
+                self.Mag = None
+                self.Ph = None
+                self.w = None
+            else:
+                Qt.QThread.msleep(10)
+                
+    def AddData(self, Mag, Ph, w):
+        while self.Mag is not None:
+            Qt.QThread.msleep(10)
+            print('plotting')
+        if self.Mag is None:
+            self.Mag = Mag
+            self.Ph = Ph
+            self.w = w
+    
+    
+    
+    
