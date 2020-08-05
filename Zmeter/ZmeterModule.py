@@ -315,10 +315,10 @@ class PlotBode(Qt.QThread):
                 Qt.QThread.msleep(10)
                 
     def AddData(self, Mag, Ph, w):
-        while self.Mag is not None:
-            Qt.QThread.msleep(10)
-            print('plotting')
-        if self.Mag is None:
+        # while self.Mag is not None:
+        #     Qt.QThread.msleep(10)
+        #     print('plotting')
+        # if self.Mag is None:
             self.Mag = Mag
             self.Ph = Ph
             self.w = w

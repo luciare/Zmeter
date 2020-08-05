@@ -179,11 +179,12 @@ class MainWindow(QWidget):
             else:
                 print('stopped')
                 self.threadSerial.ThreadWrite.AddData("MEACAN")
-                self.SaveMeas(FileName=self.FileParams.FilePath,
-                              Mag=self.MeaArrayMAG,
-                              Ph=self.MeaArrayPH,
-                              freq=self.MeaArrayFREQ
-                              )
+                if self.FileParams.Enabled.value() is True:
+                    self.SaveMeas(FileName=self.FileParams.FilePath(),
+                                  Mag=self.MeaArrayMAG,
+                                  Ph=self.MeaArrayPH,
+                                  Freq=self.MeaArrayFREQ
+                                  )
                 self.threadAcq.MeaDone.disconnect()
                 self.threadSerial.terminate()
                 self.threadSerial = None
@@ -222,9 +223,9 @@ class MainWindow(QWidget):
     def NewMeasure(self, freq, val, Bode):
         print('BODE')
         #NO LE DA TIEMPO A PLOTEAR
-        self.threadBode.AddData(Mag=Bode[:,0],
-                                Ph=Bode[:,1],
-                                w=2*np.pi*freq)
+        # self.threadBode.AddData(Mag=Bode[:,0],
+        #                         Ph=Bode[:,1],
+        #                         w=2*np.pi*freq)
         print("Freq is -->", freq)
         print("Value is -->", val)
         print("Bode is -->", Bode)
@@ -235,15 +236,18 @@ class MainWindow(QWidget):
         else:
             self.MeaArrayMAG = np.c_[self.MeaArrayMAG, Bode[:,0]]
             self.MeaArrayPH = np.c_[self.MeaArrayPH, Bode[:,1]]
-            self.MeaArrayFREQ = np.c_[self.MeaArrayFREQ, 2*np.pi*freq]
+            self.MeaArrayFREQ = np.c_[self.MeaArrayFREQ, freq]
 
     def SaveMeas(self, FileName, Mag, Ph, Freq):
         self.FileName = FileName
+        self.DictMea = {'Magnitude': Mag,
+                        'Phase': Ph,
+                        'w': 2*np.pi*Freq,
+                        }
 #        print(self.FileName)
         with open(self.FileName, "wb") as f:
-            pickle.dump(Mag, f)
-            pickle.dump(Ph, f)
-            pickle.dump(Freq, f)
+            pickle.dump(self.DictMea, f)
+
         print('Saved')      
         
 # #############################MAIN##############################
