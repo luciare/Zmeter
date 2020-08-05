@@ -16,7 +16,9 @@ with open(FileName,"rb") as f:
 
 fig, (axMag, axPh) = plt.subplots(2,1, sharex=True)
 
-for ind, (M, P, W) in enumerate(zip(Mea['Magnitude'].transpose(), Mea['Phase'].transpose(), Mea['w'].transpose())):
+for ind, (M, P, W) in enumerate(zip(Mea['Magnitude'].transpose(), 
+                                    Mea['Phase'].transpose(),
+                                    Mea['w'].transpose())):
     axMag.semilogx(W, M, label='MEA'+str(ind))
     axPh.semilogx(W, P, label='MEA'+str(ind))
 

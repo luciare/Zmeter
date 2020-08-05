@@ -171,7 +171,7 @@ class MainWindow(QWidget):
                 self.MeaArrayPH = np.array([])
                 self.MeaArrayFREQ = np.array([])
                 
-                self.threadBode = Zmeter.PlotBode()
+                # self.threadBode = Zmeter.PlotBode()
                 
                 self.btnStartMeas.setText("Stop Acq")
                 self.OldTime = time.time()
@@ -185,6 +185,10 @@ class MainWindow(QWidget):
                                   Ph=self.MeaArrayPH,
                                   Freq=self.MeaArrayFREQ
                                   )
+                self.PlotMea(Mag=self.MeaArrayMAG,
+                             Ph=self.MeaArrayPH,
+                             Freq=self.MeaArrayFREQ
+                             )
                 self.threadAcq.MeaDone.disconnect()
                 self.threadSerial.terminate()
                 self.threadSerial = None
@@ -238,13 +242,34 @@ class MainWindow(QWidget):
             self.MeaArrayPH = np.c_[self.MeaArrayPH, Bode[:,1]]
             self.MeaArrayFREQ = np.c_[self.MeaArrayFREQ, freq]
 
+    def PlotMea(self, Mag, Ph, Freq):
+        fig, (axMag, axPh) = plt.subplots(2,1, sharex=True)
+
+        for ind, (M, P, W) in enumerate(zip(Mag.transpose(), 
+                                            Ph.transpose(), 
+                                            Freq.transpose())):
+            
+            axMag.semilogx(W, M, label='MEA'+str(ind))
+            axPh.semilogx(W, P, label='MEA'+str(ind))
+        
+        axMag.set_ylabel('Magnitude', fontsize=15)
+        axPh.set_ylabel('Phase', fontsize=15)
+        axPh.set_xlabel('Freq(W)', fontsize=15)
+        
+        axMag.tick_params(direction='out', length=10, width=3, colors='black',
+                       grid_color='black', grid_alpha=0.5, labelsize=13)
+        axPh.tick_params(direction='out', length=10, width=3, colors='black',
+                       grid_color='black', grid_alpha=0.5, labelsize=13)
+        
+        plt.legend()
+        
     def SaveMeas(self, FileName, Mag, Ph, Freq):
         self.FileName = FileName
         self.DictMea = {'Magnitude': Mag,
                         'Phase': Ph,
                         'w': 2*np.pi*Freq,
                         }
-#        print(self.FileName)
+
         with open(self.FileName, "wb") as f:
             pickle.dump(self.DictMea, f)
 
