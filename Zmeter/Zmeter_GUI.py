@@ -129,7 +129,7 @@ class MainWindow(QWidget):
         if self.threadSerial is None:
             print('started')
             self.treepar.setParameters(self.Parameters, showTop=False)
-            print(self.PortSerieParams.PortSel.value())
+            # print(self.PortSerieParams.PortSel.value())
             self.threadSerial = Zmeter.SerialThread(self.PortSerieParams.PortSel.value())
             self.threadSerial.NewLine.connect(self.on_NewLine)
             self.threadSerial.start()
@@ -225,7 +225,7 @@ class MainWindow(QWidget):
         print('NextFreq')
         
     def NewMeasure(self, freq, val, Bode):
-        print('BODE')
+        # print('BODE')
         #NO LE DA TIEMPO A PLOTEAR
         # self.threadBode.AddData(Mag=Bode[:,0],
         #                         Ph=Bode[:,1],

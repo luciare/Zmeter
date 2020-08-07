@@ -277,7 +277,7 @@ class Measure(Qt.QThread):
         while self.Data is not None:
             Qt.QThread.msleep(1)
             # print("Previous Data not Measured")
-            print('waiting')
+            # print('waiting')
         if self.Data is None:
             self.Data = NewData
     
@@ -286,7 +286,7 @@ class Measure(Qt.QThread):
         self.freqs[ChnInd] = Freq
         self.Bode[ChnInd, 0] = ValMag
         self.Bode[ChnInd, 1] = ValPh
-        print('Index-->', ChnInd)
+        # print('Index-->', ChnInd)
         if MeaMode == "polar":
             self.complex = np.abs(float(ValMag))*np.exp(float(ValPh)*1j)
             self.value[ChnInd] = np.abs(self.complex)
