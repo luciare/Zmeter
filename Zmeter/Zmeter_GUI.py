@@ -161,6 +161,7 @@ class MainWindow(QWidget):
                 print('started')
                 self.treepar.setParameters(self.Parameters, showTop=False)
                 self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
+                # En vez de MEAMEA 0 se puede hacer que lea de un fichero las instrucciones
                                 
                 self.threadAcq = Zmeter.Measure()
                 self.threadAcq.MeaDone.connect(self.NewSample)
@@ -236,7 +237,8 @@ class MainWindow(QWidget):
         if self.MeaArrayMAG.shape[0] is 0:
             self.MeaArrayMAG = Bode[:,0].copy()
             self.MeaArrayPH = Bode[:,1].copy()
-            self.MeaArrayFREQ = 2*np.pi*freq
+            # self.MeaArrayFREQ = 2*np.pi*freq
+            self.MeaArrayFREQ = freq
         else:
             self.MeaArrayMAG = np.c_[self.MeaArrayMAG, Bode[:,0]]
             self.MeaArrayPH = np.c_[self.MeaArrayPH, Bode[:,1]]
@@ -267,7 +269,8 @@ class MainWindow(QWidget):
         self.FileName = FileName
         self.DictMea = {'Magnitude': Mag,
                         'Phase': Ph,
-                        'w': 2*np.pi*Freq,
+                        # 'w': 2*np.pi*Freq,
+                        'w': Freq,
                         }
 
         with open(self.FileName, "wb") as f:

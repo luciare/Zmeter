@@ -9,7 +9,7 @@ import pickle
 import matplotlib.pyplot as plt
 
 File = r"C:\Users\Lucia\Dropbox (ICN2 AEMD - GAB GBIO)\TeamFolderLMU\FreqMux\Lucia\ZMeter"  
-Name = "\TestSaveR100K.h5"
+Name = "\TestSaveData.h5"
 FileName = File+Name
 with open(FileName,"rb") as f:
     Mea= pickle.load(f, encoding='latin1')
