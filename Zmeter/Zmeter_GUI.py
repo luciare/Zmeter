@@ -172,7 +172,8 @@ class MainWindow(QWidget):
                 self.MeaArrayPH = np.array([])
                 self.MeaArrayFREQ = np.array([])
                 
-                # self.threadBode = Zmeter.PlotBode()
+                self.threadBode = Zmeter.PlotBode()
+                self.threadBode.start()
                 
                 self.btnStartMeas.setText("Stop Acq")
                 self.OldTime = time.time()
@@ -228,9 +229,9 @@ class MainWindow(QWidget):
     def NewMeasure(self, freq, val, Bode):
         # print('BODE')
         #NO LE DA TIEMPO A PLOTEAR
-        # self.threadBode.AddData(Mag=Bode[:,0],
-        #                         Ph=Bode[:,1],
-        #                         w=2*np.pi*freq)
+        self.threadBode.AddData(Mag=Bode[:,0],
+                                Ph=Bode[:,1],
+                                w=2*np.pi*freq)
         print("Freq is -->", freq)
         print("Value is -->", val)
         print("Bode is -->", Bode)

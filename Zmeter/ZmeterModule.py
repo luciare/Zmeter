@@ -16,6 +16,7 @@ import copy
 import serial
 import threading
 import serial
+import time
 
 PortSerie = ({'name': 'PortSerieConfig',
               'type': 'group',
@@ -308,6 +309,9 @@ class PlotBode(Qt.QThread):
             if self.Mag is not None:
                 self.axMag.semilogx(self.w, self.Mag)
                 self.axPh.semilogx(self.w, self.Ph)
+                self.fig.canvas.draw()
+                # self.fig.canvas.flush_events()
+                time.sleep(0.1)
                 self.Mag = None
                 self.Ph = None
                 self.w = None
