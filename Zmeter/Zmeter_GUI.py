@@ -162,11 +162,8 @@ class MainWindow(QWidget):
                 self.treepar.setParameters(self.Parameters, showTop=False)
                 self.threadSerial.ThreadWrite.AddData("MEAMEA 0")
                 # En vez de MEAMEA 0 se puede hacer que lea de un fichero las instrucciones
-                                
-                self.threadAcq = Zmeter.Measure()
-                self.threadAcq.MeaDone.connect(self.NewSample)
-                self.threadAcq.NewMea.connect(self.NewMeasure)
-                self.threadAcq.start()
+                
+                self._initMea()
                 
                 self.MeaArrayMAG = np.array([])
                 self.MeaArrayPH = np.array([])
@@ -181,17 +178,8 @@ class MainWindow(QWidget):
             else:
                 print('stopped')
                 self.threadSerial.ThreadWrite.AddData("MEACAN")
-                if self.FileParams.Enabled.value() is True:
-                    self.SaveMeas(FileName=self.FileParams.FilePath(),
-                                  Mag=self.MeaArrayMAG,
-                                  Ph=self.MeaArrayPH,
-                                  Freq=self.MeaArrayFREQ
-                                  )
-                self.PlotMea(Mag=self.MeaArrayMAG,
-                             Ph=self.MeaArrayPH,
-                             Freq=self.MeaArrayFREQ
-                             )
-                self.threadAcq.MeaDone.disconnect()
+                self._StopMea()
+
                 self.threadSerial.terminate()
                 self.threadSerial = None
     
@@ -199,6 +187,25 @@ class MainWindow(QWidget):
         else:
             print("Port not connected")
             
+    def _initMea(self):
+        self.threadAcq = Zmeter.Measure()
+        self.threadAcq.MeaDone.connect(self.NewSample)
+        self.threadAcq.NewMea.connect(self.NewMeasure)
+        self.threadAcq.start()
+        
+    def _StopMea(self):
+        if self.FileParams.Enabled.value() is True:
+            self.SaveMeas(FileName=self.FileParams.FilePath(),
+                          Mag=self.MeaArrayMAG,
+                          Ph=self.MeaArrayPH,
+                          Freq=self.MeaArrayFREQ
+                          )
+        self.PlotMea(Mag=self.MeaArrayMAG,
+                     Ph=self.MeaArrayPH,
+                     Freq=self.MeaArrayFREQ
+                     )
+        self.threadAcq.MeaDone.disconnect()
+        
     def on_NewLine(self, data):
         # print('on_newline')
         self.Console.append('>>>'+data+'\n')
@@ -214,6 +221,14 @@ class MainWindow(QWidget):
         print('WRITE')
         if self.threadSerial is not None:
             self.threadSerial.ThreadWrite.AddData(self.linecommands.text())
+            
+            if self.linecommands.text().startswith("Mea"):
+                print(self.linecommands.text())
+                self._initMea()
+            if self.linecommands.text() == "MEACAN":
+                print(self.linecommands.text())
+                self._StopMea()      
+            
         self.Console.append('>'+self.linecommands.text()+'\n')
         self.linecommands.setText("")
         
